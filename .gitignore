@@ -1,0 +1,26 @@
+# Large model checkpoints
+*.pt
+*.pth
+*.onnx
+
+# Datasets
+MWPD/
+data/
+datasets/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Training outputs
+runs/
+wandb/
+results/
+test_predictions/
+test_evaluation/
+
+# Kaggle
+.kaggle/
