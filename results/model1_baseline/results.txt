@@ -1,0 +1,27 @@
+MODEL 1 — YOLOv9-c Baseline
+============================
+
+Dataset: Multi-Weather Pothole Detection (MWPD)
+Task: Pothole Object Detection
+
+Training Configuration
+----------------------
+Model: YOLOv9-c
+Epochs: 100
+Batch Size: 4
+Image Size: 640x640
+Optimizer: SGD
+Device: NVIDIA Tesla T4
+Number of Classes: 1
+Class: Potholes
+
+Validation Results
+------------------
+Precision: 83.1%
+Recall: 77.6%
+mAP@50: 81.7%
+mAP@50-95: 45.3%
+
+Status
+------
+Baseline training completed successfully.
