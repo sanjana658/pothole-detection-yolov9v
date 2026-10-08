@@ -533,7 +533,7 @@ def create_gradcam_overlay(
         interpolation=cv2.INTER_LINEAR
     )
 
-    # Create heatmap
+   
     heatmap = cv2.applyColorMap(
         cam_original,
         cv2.COLORMAP_JET
@@ -544,7 +544,7 @@ def create_gradcam_overlay(
         cv2.COLOR_BGR2RGB
     )
 
-    # Overlay heatmap on original
+
     overlay = cv2.addWeighted(
         image_rgb,
         0.55,
@@ -702,9 +702,7 @@ if uploaded_file is not None:
             )
         )
 
-    # --------------------------------------------------------
-    # RUN ANALYSIS
-    # --------------------------------------------------------
+
 
     if analyze_button:
 
@@ -741,9 +739,7 @@ if uploaded_file is not None:
 
             st.stop()
 
-        # ====================================================
-        # DETECTION RESULTS
-        # ====================================================
+  
 
         confidence = float(
             best_detection[4]
@@ -778,9 +774,6 @@ if uploaded_file is not None:
                 use_container_width=True
             )
 
-        # ----------------------------------------------------
-        # METRICS
-        # ----------------------------------------------------
 
         m1, m2, m3 = st.columns(3)
 
@@ -807,9 +800,7 @@ if uploaded_file is not None:
 
         st.divider()
 
-        # ====================================================
-        # GRAD-CAM
-        # ====================================================
+
 
         st.subheader(
             "🔥 Grad-CAM Explainable AI"
@@ -872,9 +863,6 @@ if uploaded_file is not None:
 
         st.divider()
 
-        # ====================================================
-        # QWEN3-VL
-        # ====================================================
 
         st.subheader(
             "🤖 Qwen3-VL Visual Analysis"
@@ -918,9 +906,7 @@ if uploaded_file is not None:
 
         st.divider()
 
-        # ====================================================
-        # FINAL SUMMARY
-        # ====================================================
+     
 
         st.subheader(
             "📊 Analysis Summary"
@@ -972,9 +958,7 @@ else:
     )
 
 
-# ============================================================
-# FOOTER
-# ============================================================
+
 
 st.divider()
 
