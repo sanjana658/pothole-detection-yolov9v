@@ -8,11 +8,6 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 
-
-# ============================================================
-# PATHS
-# ============================================================
-
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(APP_DIR)
 YOLO_DIR = os.path.join(PROJECT_DIR, "yolov9")
@@ -28,15 +23,8 @@ CONFIG_PATH = os.path.join(
     "detect",
     "yolov9-c-mwpd-enhanced.yaml"
 )
-
-# Add YOLOv9 repository to Python path
 if YOLO_DIR not in sys.path:
     sys.path.insert(0, YOLO_DIR)
-
-
-# ============================================================
-# YOLOv9 IMPORTS
-# ============================================================
 
 from models.yolo import Model
 from utils.augmentations import letterbox
@@ -46,9 +34,6 @@ from utils.general import (
 )
 
 
-# ============================================================
-# STREAMLIT CONFIGURATION
-# ============================================================
 
 st.set_page_config(
     page_title="Multi-Weather Pothole Detection",
@@ -56,10 +41,6 @@ st.set_page_config(
     layout="wide"
 )
 
-
-# ============================================================
-# PAGE TITLE
-# ============================================================
 
 st.title("🕳️ Multi-Weather Pothole Detection")
 
@@ -76,10 +57,6 @@ st.markdown(
 st.divider()
 
 
-# ============================================================
-# DEVICE
-# ============================================================
-
 if torch.backends.mps.is_available():
     DEVICE = torch.device("mps")
 elif torch.cuda.is_available():
@@ -87,10 +64,6 @@ elif torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
-
-# ============================================================
-# LOAD ENHANCED YOLOv9
-# ============================================================
 
 @st.cache_resource
 def load_model():
@@ -106,14 +79,11 @@ def load_model():
             f"{CONFIG_PATH}"
         )
 
-    # Create enhanced YOLOv9 architecture
     model = Model(
         CONFIG_PATH,
         ch=3,
         nc=1
     )
-
-    # Load trained checkpoint
     checkpoint = torch.load(
         MODEL_PATH,
         map_location="cpu",
@@ -143,11 +113,6 @@ def load_model():
 
     return model
 
-
-# ============================================================
-# LOAD MODEL
-# ============================================================
-
 try:
 
     model = load_model()
@@ -175,11 +140,6 @@ except Exception as e:
     )
 
     st.stop()
-
-
-# ============================================================
-# IMAGE PREPROCESSING
-# ============================================================
 
 def preprocess_image(image_rgb):
 
@@ -221,10 +181,6 @@ def preprocess_image(image_rgb):
     return tensor, resized_rgb
 
 
-# ============================================================
-# YOLOv9 DETECTION
-# ============================================================
-
 def run_detection(image_rgb):
 
     """
@@ -244,10 +200,8 @@ def run_detection(image_rgb):
             tensor
         )
 
-    # Normal YOLOv9 detection branch
     raw_pred = prediction[0][1]
 
-    # Non-Maximum Suppression
     detections = non_max_suppression(
         raw_pred,
         conf_thres=0.25,
@@ -267,7 +221,6 @@ def run_detection(image_rgb):
             "best_detection": None
         }
 
-    # Convert bounding boxes back to original image size
     det_scaled = det.clone()
 
     scale_boxes(
@@ -276,7 +229,6 @@ def run_detection(image_rgb):
         image_rgb.shape
     )
 
-    # Find highest-confidence detection
     best_idx = torch.argmax(
         det_scaled[:, 4]
     )
@@ -294,11 +246,6 @@ def run_detection(image_rgb):
         "detections": det_scaled,
         "best_detection": best_detection
     }
-
-
-# ============================================================
-# DRAW DETECTIONS
-# ============================================================
 
 def draw_detections(
     image_rgb,
@@ -347,11 +294,6 @@ def draw_detections(
 
     return output
 
-
-# ============================================================
-# GRAD-CAM
-# ============================================================
-
 def generate_gradcam(
     tensor,
     detections
@@ -373,18 +315,12 @@ def generate_gradcam(
             "No detection available for Grad-CAM."
         )
 
-    # --------------------------------------------------------
-    # Target feature layer
-    # --------------------------------------------------------
 
     target_layer = model.model[22]
 
     activation = None
     gradient = None
 
-    # --------------------------------------------------------
-    # Forward hook
-    # --------------------------------------------------------
 
     def forward_hook(
         module,
@@ -413,10 +349,6 @@ def generate_gradcam(
 
                     activation = item
                     break
-
-    # --------------------------------------------------------
-    # Backward hook
-    # --------------------------------------------------------
 
     def backward_hook(
         module,
@@ -451,27 +383,19 @@ def generate_gradcam(
             set_to_none=True
         )
 
-        # ----------------------------------------------------
-        # Forward pass with gradients enabled
-        # ----------------------------------------------------
-
         with torch.enable_grad():
 
             prediction = model(
                 tensor
             )
 
-            # Same branch used by detection
-            raw_pred = prediction[0][1]
 
-            # Objectness/confidence channel
+            raw_pred = prediction[0][1]
             confidence_map = raw_pred[
                 0,
                 4,
                 :
             ]
-
-            # Highest-confidence prediction
             target_index = int(
                 torch.argmax(
                     confidence_map
@@ -484,12 +408,8 @@ def generate_gradcam(
                 ]
             )
 
-            # Backpropagation
-            target_score.backward()
 
-        # ----------------------------------------------------
-        # Validate activation
-        # ----------------------------------------------------
+            target_score.backward()
 
         if activation is None:
 
@@ -498,9 +418,6 @@ def generate_gradcam(
                 "was not captured."
             )
 
-        # ----------------------------------------------------
-        # Validate gradient
-        # ----------------------------------------------------
 
         if gradient is None:
 
@@ -508,10 +425,6 @@ def generate_gradcam(
                 "Grad-CAM gradient "
                 "was not captured."
             )
-
-        # ----------------------------------------------------
-        # Technical information
-        # ----------------------------------------------------
 
         debug_message = (
             f"Feature map: "
@@ -522,20 +435,12 @@ def generate_gradcam(
             f"{target_index}\n"
             f"Target confidence: "
             f"{float(target_score.detach()):.4f}"
-        )
-
-        # ----------------------------------------------------
-        # Grad-CAM channel weights
-        # ----------------------------------------------------
+            }
 
         weights = gradient.mean(
             dim=(2, 3),
             keepdim=True
         )
-
-        # ----------------------------------------------------
-        # Weighted feature maps
-        # ----------------------------------------------------
 
         cam = (
             weights * activation
@@ -544,12 +449,12 @@ def generate_gradcam(
             keepdim=True
         )
 
-        # ReLU
+
         cam = F.relu(
             cam
         )
 
-        # Resize
+
         cam = F.interpolate(
             cam,
             size=(640, 640),
@@ -562,9 +467,6 @@ def generate_gradcam(
             0
         ]
 
-        # ----------------------------------------------------
-        # NumPy conversion
-        # ----------------------------------------------------
 
         cam = (
             cam.detach()
@@ -572,9 +474,6 @@ def generate_gradcam(
             .numpy()
         )
 
-        # ----------------------------------------------------
-        # Normalize
-        # ----------------------------------------------------
 
         cam_min = cam.min()
         cam_max = cam.max()
@@ -619,17 +518,12 @@ def generate_gradcam(
             set_to_none=True
         )
 
-
-# ============================================================
-# GRAD-CAM OVERLAY
-# ============================================================
-
 def create_gradcam_overlay(
     image_rgb,
     cam
 ):
 
-    # Resize heatmap to original image
+
     cam_original = cv2.resize(
         cam,
         (
@@ -660,11 +554,6 @@ def create_gradcam_overlay(
     )
 
     return overlay
-
-
-# ============================================================
-# QWEN3-VL ANALYSIS
-# ============================================================
 
 def run_vlm_analysis(
     image_pil,
@@ -760,9 +649,6 @@ a single RGB image.
 """
 
 
-# ============================================================
-# FILE UPLOAD
-# ============================================================
 
 uploaded_file = st.file_uploader(
     "📤 Upload a road image",
@@ -774,9 +660,7 @@ uploaded_file = st.file_uploader(
 )
 
 
-# ============================================================
-# MAIN APPLICATION
-# ============================================================
+
 
 if uploaded_file is not None:
 
@@ -788,9 +672,6 @@ if uploaded_file is not None:
         image_pil
     )
 
-    # --------------------------------------------------------
-    # INPUT IMAGE
-    # --------------------------------------------------------
 
     st.subheader(
         "📷 Input Image"
@@ -803,9 +684,7 @@ if uploaded_file is not None:
 
     st.divider()
 
-    # --------------------------------------------------------
-    # ANALYSIS FORM
-    # --------------------------------------------------------
+   
 
     with st.form(
         "analysis_form"
@@ -829,9 +708,6 @@ if uploaded_file is not None:
 
     if analyze_button:
 
-        # ====================================================
-        # YOLOv9 DETECTION
-        # ====================================================
 
         with st.spinner(
             "Running Enhanced YOLOv9..."
@@ -849,9 +725,7 @@ if uploaded_file is not None:
             result["best_detection"]
         )
 
-        # ----------------------------------------------------
-        # NO DETECTION
-        # ----------------------------------------------------
+  
 
         if best_detection is None:
 
